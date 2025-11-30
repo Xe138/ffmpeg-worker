@@ -1,11 +1,30 @@
+import asyncio
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, HTTPException, status
 
 from app.models import CreateJobRequest, Job, JobResponse, JobStatus
+from app.queue import JobQueue, worker_loop
 from app.store import JobStore
 
-app = FastAPI(title="FFmpeg Worker", version="1.0.0")
-
 job_store = JobStore()
+job_queue = JobQueue()
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Start worker on startup
+    worker_task = asyncio.create_task(worker_loop(job_queue, job_store))
+    yield
+    # Cancel worker on shutdown
+    worker_task.cancel()
+    try:
+        await worker_task
+    except asyncio.CancelledError:
+        pass
+
+
+app = FastAPI(title="FFmpeg Worker", version="1.0.0", lifespan=lifespan)
 
 
 @app.get("/health")
@@ -17,6 +36,7 @@ async def health() -> dict[str, str]:
 async def create_job(request: CreateJobRequest) -> JobResponse:
     job = Job(command=request.command)
     job_store.add(job)
+    await job_queue.enqueue(job.id)
     return JobResponse.model_validate(job.model_dump())
 
 
