@@ -24,7 +24,14 @@ jobs:
         run: $HOME/.local/bin/uv sync
 
       - name: Install FFmpeg
-        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+        run: |
+          if command -v ffmpeg &> /dev/null; then
+            echo "FFmpeg already installed"
+          elif command -v sudo &> /dev/null; then
+            sudo apt-get update && sudo apt-get install -y ffmpeg
+          else
+            apt-get update && apt-get install -y ffmpeg
+          fi
 
       - name: Run tests
         run: $HOME/.local/bin/uv run pytest tests/ -v --ignore=tests/test_integration.py
