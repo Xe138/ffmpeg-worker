@@ -2,9 +2,9 @@ services:
   ffmpeg-worker:
     build: .
     ports:
-      - "8000:8000"
+      - "${HOST_PORT:-8000}:8000"
     volumes:
-      - ./data:/data
+      - ${DATA_VOLUME_PATH:-./data}:/data
     environment:
       - DATA_PATH=/data
-      - FFMPEG_TIMEOUT=3600
+      - FFMPEG_TIMEOUT=${FFMPEG_TIMEOUT:-3600}
