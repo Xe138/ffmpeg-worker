@@ -1,3 +1,4 @@
+import asyncio
 import shlex
 from pathlib import Path
 
@@ -98,4 +99,25 @@ def extract_output_path(args: list[str]) -> str | None:
         if "." in arg or "/" in arg:
             return arg
         i -= 1
+    return None
+
+
+async def get_duration(input_path: str) -> float | None:
+    """Get duration of media file using ffprobe."""
+    try:
+        process = await asyncio.create_subprocess_exec(
+            "ffprobe",
+            "-v", "error",
+            "-show_entries", "format=duration",
+            "-of", "default=noprint_wrappers=1:nokey=1",
+            input_path,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        stdout, _ = await process.communicate()
+
+        if process.returncode == 0:
+            return float(stdout.decode().strip())
+    except (ValueError, OSError):
+        pass
     return None

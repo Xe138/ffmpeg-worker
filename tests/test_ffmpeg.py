@@ -1,6 +1,9 @@
 import pytest
+import asyncio
+from unittest.mock import AsyncMock, patch, MagicMock
 
 from app.ffmpeg import parse_command, resolve_paths, parse_progress, extract_output_path
+from app.models import Job
 
 
 def test_parse_simple_command():
@@ -99,3 +102,32 @@ def test_extract_output_path_complex():
     output_path = extract_output_path(args)
 
     assert output_path == "out.mp4"
+
+
+@pytest.mark.asyncio
+async def test_get_duration():
+    from app.ffmpeg import get_duration
+
+    # Mock ffprobe output
+    mock_process = MagicMock()
+    mock_process.communicate = AsyncMock(return_value=(b"120.5\n", b""))
+    mock_process.returncode = 0
+
+    with patch("asyncio.create_subprocess_exec", return_value=mock_process):
+        duration = await get_duration("/data/input.mp4")
+
+    assert duration == 120.5
+
+
+@pytest.mark.asyncio
+async def test_get_duration_failure():
+    from app.ffmpeg import get_duration
+
+    mock_process = MagicMock()
+    mock_process.communicate = AsyncMock(return_value=(b"", b"error"))
+    mock_process.returncode = 1
+
+    with patch("asyncio.create_subprocess_exec", return_value=mock_process):
+        duration = await get_duration("/data/input.mp4")
+
+    assert duration is None
