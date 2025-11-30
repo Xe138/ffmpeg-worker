@@ -8,7 +8,7 @@ import time
 import requests
 import os
 
-WORKER_URL = "http://localhost:8000"
+WORKER_URL = "http://localhost:8099"
 
 
 @pytest.fixture(scope="module")
@@ -29,8 +29,11 @@ def docker_compose():
         "-c:v", "libx264", "-pix_fmt", "yuv420p", test_input
     ], check=True, capture_output=True)
 
-    # Start docker-compose
-    subprocess.run(["docker-compose", "up", "-d", "--build"], check=True)
+    # Start docker-compose with test config (uses port 8099 to avoid conflicts)
+    subprocess.run([
+        "docker-compose", "-f", "docker-compose.test.yml", "-p", "ffmpeg-worker-test",
+        "up", "-d", "--build"
+    ], check=True)
 
     # Wait for service to be ready
     for _ in range(30):
@@ -47,7 +50,10 @@ def docker_compose():
     yield
 
     # Cleanup
-    subprocess.run(["docker-compose", "down"], check=True)
+    subprocess.run([
+        "docker-compose", "-f", "docker-compose.test.yml", "-p", "ffmpeg-worker-test",
+        "down"
+    ], check=True)
 
 
 def test_full_workflow(docker_compose):
