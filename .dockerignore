@@ -8,3 +8,5 @@ data/
 *.md
 .env
 .venv/
+venv/
+uv.lock
