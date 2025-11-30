@@ -6,15 +6,15 @@ requires-python = ">=3.12"
 dependencies = [
     "fastapi>=0.123.0",
     "uvicorn[standard]>=0.38.0",
-    "pydantic>=2.12.5",
+    "pydantic>=2.12.5,<3.0.0",
 ]
 
 [project.optional-dependencies]
 dev = [
-    "pytest>=8.3.0",
-    "pytest-asyncio>=0.24.0",
+    "pytest>=8.4.0",
+    "pytest-asyncio>=1.2.0",
     "httpx>=0.28.1",
-    "requests>=2.32.0",
+    "requests>=2.32.3,<3.0.0",
 ]
 
 [tool.pytest.ini_options]
@@ -23,8 +23,8 @@ testpaths = ["tests"]
 
 [tool.uv]
 dev-dependencies = [
-    "pytest>=8.3.0",
-    "pytest-asyncio>=0.24.0",
+    "pytest>=8.4.0",
+    "pytest-asyncio>=1.2.0",
     "httpx>=0.28.1",
-    "requests>=2.32.0",
+    "requests>=2.32.3,<3.0.0",
 ]
