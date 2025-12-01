@@ -5,6 +5,10 @@ on:
     tags:
       - 'v*.*.*'
 
+env:
+  REGISTRY: git.prettyhefty.com
+  IMAGE_NAME: bill/ffmpeg-worker
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -44,14 +48,27 @@ jobs:
 
       - name: Extract version from tag
         id: version
-        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
-
-      - name: Build Docker image
         run: |
-          if command -v docker &> /dev/null; then
-            docker build -t ffmpeg-worker:${{ steps.version.outputs.VERSION }} .
-            docker tag ffmpeg-worker:${{ steps.version.outputs.VERSION }} ffmpeg-worker:latest
-            docker images | grep ffmpeg-worker
+          VERSION=${GITHUB_REF#refs/tags/}
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          if [[ "$VERSION" == *-alpha* ]] || [[ "$VERSION" == *-beta* ]] || [[ "$VERSION" == *-rc* ]]; then
+            echo "IS_PRERELEASE=true" >> $GITHUB_OUTPUT
           else
-            echo "Docker not available - skipping build"
+            echo "IS_PRERELEASE=false" >> $GITHUB_OUTPUT
           fi
+
+      - name: Log in to Container Registry
+        run: echo "${{ secrets.REGISTRY_TOKEN }}" | docker login ${{ env.REGISTRY }} -u ${{ gitea.actor }} --password-stdin
+
+      - name: Build and push Docker image
+        run: |
+          docker build -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.version.outputs.VERSION }} .
+          docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.version.outputs.VERSION }}
+
+          if [ "${{ steps.version.outputs.IS_PRERELEASE }}" = "false" ]; then
+            docker tag ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.version.outputs.VERSION }} ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+            docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+          fi
+
+      - name: List images
+        run: docker images | grep ffmpeg-worker
